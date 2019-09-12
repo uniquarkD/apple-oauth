@@ -1,15 +1,15 @@
-'use strict';
+"use strict";
 
 /**
  * Define the base object namespace. By convention we use the service name
  * in PascalCase (aka UpperCamelCase). Note that this is defined as a package global.
  */
-Imgur = {};
+Apple = {};
 
 /**
  * Boilerplate hook for use by underlying Meteor code
  */
-Imgur.retrieveCredential = (credentialToken, credentialSecret) => {
+Apple.retrieveCredential = (credentialToken, credentialSecret) => {
   return OAuth.retrieveCredential(credentialToken, credentialSecret);
 };
 
@@ -18,26 +18,25 @@ Imgur.retrieveCredential = (credentialToken, credentialSecret) => {
  *  id, reputation, created: from https://api.imgur.com/3/account/{username}
  *  email: from https://api.imgur.com/3/account/{username}/settings
  * Note that we *must* have an id. Also, this array is referenced in the
- * accounts-imgur package, so we should probably keep this name and structure.
+ * accounts-apple package, so we should probably keep this name and structure.
  */
-Imgur.whitelistedFields = ['id', 'email', 'reputation', 'created'];
+Apple.whitelistedFields = ["id", "email", "name"];
 
 /**
  * Register this service with the underlying OAuth handler
  * (name, oauthVersion, urls, handleOauthRequest):
- *  name = 'imgur'
+ *  name = 'apple'
  *  oauthVersion = 2
  *  urls = null for OAuth 2
  *  handleOauthRequest = function(query) returns {serviceData, options} where options is optional
- * serviceData will end up in the user's services.imgur
+ * serviceData will end up in the user's services.apple
  */
-OAuth.registerService('imgur', 2, null, function(query) {
-
+OAuth.registerService("apple", 2, null, function(query) {
   /**
    * Make sure we have a config object for subsequent use (boilerplate)
    */
   const config = ServiceConfiguration.configurations.findOne({
-    service: 'imgur'
+    service: "apple"
   });
   if (!config) {
     throw new ServiceConfiguration.ConfigError();
@@ -45,7 +44,7 @@ OAuth.registerService('imgur', 2, null, function(query) {
 
   /**
    * Get the token and username (Meteor handles the underlying authorization flow).
-   * Note that the username comes from from this request in Imgur.
+   * Note that the username comes from from this request in Apple.
    */
   const response = getTokens(config, query);
   const accessToken = response.accessToken;
@@ -56,9 +55,9 @@ OAuth.registerService('imgur', 2, null, function(query) {
    * to complete our serviceData request.
    * The identity object will contain the username plus *all* properties
    * retrieved from the account and settings methods.
-  */
+   */
   const identity = _.extend(
-    {username},
+    { username },
     getAccount(config, username, accessToken),
     getSettings(config, username, accessToken)
   );
@@ -76,12 +75,12 @@ OAuth.registerService('imgur', 2, null, function(query) {
    */
   const serviceData = {
     accessToken,
-    expiresAt: (+new Date) + (1000 * response.expiresIn)
+    expiresAt: +new Date() + 1000 * response.expiresIn
   };
   if (response.refreshToken) {
     serviceData.refreshToken = response.refreshToken;
   }
-  _.extend(serviceData, _.pick(identity, Imgur.whitelistedFields));
+  _.extend(serviceData, _.pick(identity, Apple.whitelistedFields));
 
   /**
    * Return the serviceData object along with an options object containing
@@ -91,7 +90,9 @@ OAuth.registerService('imgur', 2, null, function(query) {
     serviceData: serviceData,
     options: {
       profile: {
-        name: response.username // comes from the token request
+        username: response.username, // comes from the token request
+        firstName: response.name.firstName,
+        lastName: response.name.lastName
       }
     }
   };
@@ -105,7 +106,7 @@ OAuth.registerService('imgur', 2, null, function(query) {
  * repectively.
  */
 
-/** getTokens exchanges a code for a token in line with Imgur's documentation
+/** getTokens exchanges a code for a token in line with Apple's documentation
  *
  *  returns an object containing:
  *   accessToken        {String}
@@ -119,39 +120,40 @@ OAuth.registerService('imgur', 2, null, function(query) {
  * @return  {Object}              The response from the token request (see above)
  */
 const getTokens = function(config, query) {
-
-  const endpoint = 'https://api.imgur.com/oauth2/token';
+  const endpoint = "https://api.imgur.com/oauth2/token";
 
   /**
    * Attempt the exchange of code for token
    */
   let response;
   try {
-    response = HTTP.post(
-      endpoint, {
-        params: {
-          code: query.code,
-          client_id: config.clientId,
-          client_secret: OAuth.openSecret(config.secret),
-          grant_type: 'authorization_code'
-        }
-      });
-
-  } catch (err) {
-    throw _.extend(new Error(`Failed to complete OAuth handshake with Imgur. ${err.message}`), {
-      response: err.response
+    response = HTTP.post(endpoint, {
+      params: {
+        code: query.code,
+        client_id: config.clientId,
+        client_secret: OAuth.openSecret(config.secret),
+        grant_type: "authorization_code"
+      }
     });
+  } catch (err) {
+    throw _.extend(
+      new Error(
+        `Failed to complete OAuth handshake with Apple. ${err.message}`
+      ),
+      {
+        response: err.response
+      }
+    );
   }
 
   if (response.data.error) {
-
     /**
      * The http response was a json object with an error attribute
      */
-    throw new Error(`Failed to complete OAuth handshake with Imgur. ${response.data.error}`);
-
+    throw new Error(
+      `Failed to complete OAuth handshake with Apple. ${response.data.error}`
+    );
   } else {
-
     /** The exchange worked. We have an object containing
      *   access_token
      *   refresh_token
@@ -165,13 +167,17 @@ const getTokens = function(config, query) {
       accessToken: response.data.access_token,
       refreshToken: response.data.refresh_token,
       expiresIn: response.data.expires_in,
-      username: response.data.account_username
+      username: response.data.account_username,
+      name: {
+        firstName: response.data.account_username,
+        lastName: response.data.account_username
+      }
     };
   }
 };
 
 /**
- * getAccount gets the basic Imgur account data
+ * getAccount gets the basic Apple account data
  *
  *  returns an object containing:
  *   id             {Integer}         The user's Imgur id
@@ -187,7 +193,6 @@ const getTokens = function(config, query) {
  * @return  {Object}              The response from the account request (see above)
  */
 const getAccount = function(config, username, accessToken) {
-
   const endpoint = `https://api.imgur.com/3/account/${username}`;
   let accountObject;
 
@@ -197,25 +202,24 @@ const getAccount = function(config, username, accessToken) {
    * Hence (response).data.data
    */
   try {
-    accountObject = HTTP.get(
-      endpoint, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
+    accountObject = HTTP.get(endpoint, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
       }
-    ).data.data;
+    }).data.data;
     return accountObject;
-
   } catch (err) {
-    throw _.extend(new Error(`Failed to fetch account data from Imgur. ${err.message}`), {
-      response: err.response
-    });
+    throw _.extend(
+      new Error(`Failed to fetch account data from Apple. ${err.message}`),
+      {
+        response: err.response
+      }
+    );
   }
 };
 
-
 /**
- * getSettings gets the basic Imgur account/settings data
+ * getSettings gets the basic Apple account/settings data
  *
  *  returns an object containing:
  *   email                   {String}           The user's email address
@@ -235,7 +239,6 @@ const getAccount = function(config, username, accessToken) {
  * @return  {Object}              The response from the account request (see above)
  */
 const getSettings = function(config, username, accessToken) {
-
   const endpoint = `https://api.imgur.com/3/account/${username}/settings`;
   let settingsObject;
 
@@ -245,18 +248,18 @@ const getSettings = function(config, username, accessToken) {
    * Hence (response).data.data
    */
   try {
-    settingsObject = HTTP.get(
-      endpoint, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
+    settingsObject = HTTP.get(endpoint, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
       }
-    ).data.data;
+    }).data.data;
     return settingsObject;
-
   } catch (err) {
-    throw _.extend(new Error(`Failed to fetch settings data from Imgur. ${err.message}`), {
-      response: err.response
-    });
+    throw _.extend(
+      new Error(`Failed to fetch settings data from Apple. ${err.message}`),
+      {
+        response: err.response
+      }
+    );
   }
 };
