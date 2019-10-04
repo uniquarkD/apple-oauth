@@ -1,32 +1,26 @@
 Package.describe({
-  name: "bigowl:apple",
-  version: "0.0.1",
-  summary: "OAuth handler for Sign in with Apple",
-  git: "https://github.com/jramer/bigowl-apple",
-  documentation: "README.md"
+  name: 'bigowl:apple-oauth',
+  version: '0.0.1',
+  summary: 'Sign in with Apple OAuth flow',
+  git: 'https://github.com/jramer/apple-oauth',
 });
 
 Package.onUse(function(api) {
-  api.versionsFrom("1.8.1");
-  api.use("ecmascript");
-  api.use("accounts-ui", ["client", "server"]);
-  api.use("oauth2", ["client", "server"]);
-  api.use("oauth", ["client", "server"]);
-  api.use("http", ["server"]);
-  api.use(["underscore", "service-configuration"], ["client", "server"]);
-  api.use(["random", "templating"], "client");
+  api.use('ecmascript');
+  api.use('oauth2', ['client', 'server']);
+  api.use('oauth', ['client', 'server']);
+  api.use('http', ['server']);
+  api.use(['service-configuration'], ['client', 'server']);
+  api.use(['random'], 'client');
 
-  api.export("Apple");
+  api.addFiles('apple_server.js', 'server');
+  api.addFiles('apple_client.js', 'client');
 
-  api.addFiles(["apple_configure.html", "apple_configure.js"], "client");
+  api.mainModule('namespace.js');
 
-  api.mainModule("apple_server.js", "server");
-  api.mainModule("apple_client.js", "client");
+  api.export('Apple');
 });
 
-Package.onTest(function(api) {
-  api.use("ecmascript");
-  api.use("tinytest");
-  api.use("bigowl:apple");
-  api.mainModule("apple-tests.js");
+Npm.depends({
+  jsonwebtoken: '8.5.1',
 });

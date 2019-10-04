@@ -1,10 +1,4 @@
-"use strict";
-
-/**
- * Define the base object namespace. By convention we use the service name
- * in PascalCase (aka UpperCamelCase). Note that this is defined as a package global (boilerplate).
- */
-Apple = {};
+import Apple from './namespace.js';
 
 /**
  * Request Apple credentials for the user (boilerplate).
@@ -14,57 +8,42 @@ Apple = {};
  * @param {Function}  credentialRequestCompleteCallback   Callback function to call on completion. Takes one argument, credentialToken on success, or Error on error.
  */
 Apple.requestCredential = function(options, credentialRequestCompleteCallback) {
-  /**
-   * Support both (options, callback) and (callback).
-   */
-  if (!credentialRequestCompleteCallback && typeof options === "function") {
+  // Support both (options, callback) and (callback).
+  if (!credentialRequestCompleteCallback && typeof options === 'function') {
     credentialRequestCompleteCallback = options;
     options = {};
   } else if (!options) {
     options = {};
   }
 
-  /**
-   * Make sure we have a config object for subsequent use (boilerplate)
-   */
   const config = ServiceConfiguration.configurations.findOne({
-    service: "apple"
+    service: 'apple',
   });
   if (!config) {
-    credentialRequestCompleteCallback &&
-      credentialRequestCompleteCallback(new ServiceConfiguration.ConfigError());
+    credentialRequestCompleteCallback
+      && credentialRequestCompleteCallback(new ServiceConfiguration.ConfigError());
     return;
   }
 
-  /**
-   * Boilerplate
-   */
   const credentialToken = Random.secret();
-  const loginStyle = OAuth._loginStyle("apple", config, options);
+  const loginStyle = OAuth._loginStyle('apple', config, options);
 
-  /**
-   * Apple requires response_type and client_id
-   * We use state to roundtrip a random token to help protect against CSRF (boilerplate)
-   */
-  const loginUrl =
-    "https://api.imgur.com/oauth2/authorize" +
-    "?response_type=code" +
-    "&client_id=" +
-    config.clientId +
-    "&state=" +
-    OAuth._stateParam(loginStyle, credentialToken);
+  const loginUrl = 'https://appleid.apple.com/auth/authorize'
+    + '?response_type=code'
+    + '&response_mode=form_post'
+    + `&redirect_uri=${config.redirectUri}`
+    + `&client_id=${config.clientId}`
+    + '&scope=name%20email'
+    + `&state=${OAuth._stateParam(loginStyle, credentialToken)}`;
 
-  /**
-   * Client initiates OAuth login request (boilerplate)
-   */
   OAuth.launchLogin({
-    loginService: "apple",
-    loginStyle: loginStyle,
-    loginUrl: loginUrl,
-    credentialRequestCompleteCallback: credentialRequestCompleteCallback,
-    credentialToken: credentialToken,
+    loginService: 'apple',
+    loginStyle,
+    loginUrl,
+    credentialRequestCompleteCallback,
+    credentialToken,
     popupOptions: {
-      height: 600
-    }
+      height: 600,
+    },
   });
 };
