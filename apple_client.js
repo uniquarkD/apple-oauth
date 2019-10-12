@@ -1,3 +1,4 @@
+/* global OAuth */
 import Apple from './namespace.js';
 
 /**
@@ -26,14 +27,17 @@ Apple.requestCredential = function(options, credentialRequestCompleteCallback) {
   }
 
   const credentialToken = Random.secret();
-  const loginStyle = OAuth._loginStyle('apple', config, options);
+  const loginStyle = Apple._isNativeSignInWindow()
+    ? 'redirect'
+    : OAuth._loginStyle('apple', config, options);
+  const scope = options && options.requestPermissions ? options.requestPermissions.join('%20') : 'name%20email';
 
   const loginUrl = 'https://appleid.apple.com/auth/authorize'
-    + '?response_type=code'
+    + '?response_type=code%20id_token'
     + '&response_mode=form_post'
     + `&redirect_uri=${config.redirectUri}`
     + `&client_id=${config.clientId}`
-    + '&scope=name%20email'
+    + `&scope=${scope}`
     + `&state=${OAuth._stateParam(loginStyle, credentialToken)}`;
 
   OAuth.launchLogin({
@@ -46,4 +50,23 @@ Apple.requestCredential = function(options, credentialRequestCompleteCallback) {
       height: 600,
     },
   });
+};
+
+/**
+ * Checks if browser uses native sign in window
+ *
+ * webkit >=605 on iOS and macos shows sign in with apple as native ui screen
+ * and then we need to use a redirect login style
+ *
+ * (Would like to have a better way to check this but it works for now)
+ */
+Apple._isNativeSignInWindow = function() {
+  const minVersionNative = 605;
+  const userAgent = ((navigator && navigator.userAgent) || '').toLowerCase();
+  const match = userAgent.match(/applewebkit\/(\d+)/);
+  if (match === null) {
+    return false;
+  }
+  const version = match[1];
+  return version >= minVersionNative;
 };
