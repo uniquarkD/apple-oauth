@@ -22,5 +22,6 @@ Package.onUse(function(api) {
 });
 
 Npm.depends({
-  jsonwebtoken: '8.5.1',
+  'jsonwebtoken': '8.5.1',
+  'jwks-rsa': '1.6.0',
 });
