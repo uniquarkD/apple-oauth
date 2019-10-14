@@ -1,11 +1,12 @@
 Package.describe({
   name: 'bigowl:apple-oauth',
-  version: '0.0.1',
+  version: '1.0.0',
   summary: 'Sign in with Apple OAuth flow',
   git: 'https://github.com/jramer/apple-oauth',
 });
 
 Package.onUse(function(api) {
+  api.versionsFrom('1.8.1')
   api.use('ecmascript');
   api.use('oauth2', ['client', 'server']);
   api.use('oauth', ['client', 'server']);
