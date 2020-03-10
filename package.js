@@ -1,6 +1,6 @@
 Package.describe({
   name: 'bigowl:apple-oauth',
-  version: '1.0.1',
+  version: '1.0.2',
   summary: 'Sign in with Apple OAuth flow',
   git: 'https://github.com/jramer/apple-oauth',
 });

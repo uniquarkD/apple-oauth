@@ -13,10 +13,6 @@ Apple.jwksClient = jwksClient({
   cache: true,
   cacheMaxAge: 1000 * 3600 * 24, // 24h in ms
 });
-Apple.config = ServiceConfiguration.configurations.findOne({ service: 'apple' });
-if (!Apple.config) {
-  throw new ServiceConfiguration.ConfigError();
-}
 
 /**
  * Verifies and parses identity token.
@@ -135,6 +131,10 @@ const generateToken = function(teamId, clientId, privateKey, keyId) {
  */
 const getTokens = (query) => {
   const endpoint = 'https://appleid.apple.com/auth/token';
+  Apple.config = ServiceConfiguration.configurations.findOne({ service: 'apple' });
+  if (!Apple.config) {
+    throw new ServiceConfiguration.ConfigError('Apple');
+  }
   const token = generateToken(
     Apple.config.teamId,
     Apple.config.clientId,
