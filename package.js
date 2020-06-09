@@ -1,8 +1,8 @@
 Package.describe({
-  name: 'bigowl:apple-oauth',
+  name: 'renanccastro:apple-oauth',
   version: '1.0.2',
-  summary: 'Sign in with Apple OAuth flow',
-  git: 'https://github.com/jramer/apple-oauth',
+  summary: 'Sign in with Apple OAuth flow - fork from bigowl',
+  git: 'https://github.com/renanccastro/apple-oauth',
 });
 
 Package.onUse(function(api) {
