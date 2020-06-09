@@ -1,5 +1,5 @@
 /* global OAuth */
-import Apple from './namespace.js';
+import Apple from "./namespace.js";
 
 /**
  * Request Apple credentials for the user (boilerplate).
@@ -8,48 +8,81 @@ import Apple from './namespace.js';
  * @param {Object}    options                             Optional
  * @param {Function}  credentialRequestCompleteCallback   Callback function to call on completion. Takes one argument, credentialToken on success, or Error on error.
  */
-Apple.requestCredential = function(options, credentialRequestCompleteCallback) {
+Apple.requestCredential = function (
+  options,
+  credentialRequestCompleteCallback
+) {
   // Support both (options, callback) and (callback).
-  if (!credentialRequestCompleteCallback && typeof options === 'function') {
+  if (!credentialRequestCompleteCallback && typeof options === "function") {
     credentialRequestCompleteCallback = options;
     options = {};
   } else if (!options) {
     options = {};
   }
-
   const config = ServiceConfiguration.configurations.findOne({
-    service: 'apple',
+    service: "apple",
   });
   if (!config) {
-    credentialRequestCompleteCallback
-      && credentialRequestCompleteCallback(new ServiceConfiguration.ConfigError());
+    credentialRequestCompleteCallback &&
+      credentialRequestCompleteCallback(new ServiceConfiguration.ConfigError());
     return;
   }
 
-  const credentialToken = Random.secret();
-  const loginStyle = Apple._isNativeSignInWindow()
-    ? 'redirect'
-    : OAuth._loginStyle('apple', config, options);
-  const scope = options && options.requestPermissions ? options.requestPermissions.join('%20') : 'name%20email';
+  if (!Meteor.isCordova) {
+    const credentialToken = Random.secret();
+    const loginStyle = Apple._isNativeSignInWindow()
+      ? "redirect"
+      : OAuth._loginStyle("apple", config, options);
+    const scope =
+      options && options.requestPermissions
+        ? options.requestPermissions.join("%20")
+        : "name%20email";
 
-  const loginUrl = 'https://appleid.apple.com/auth/authorize'
-    + '?response_type=code%20id_token'
-    + '&response_mode=form_post'
-    + `&redirect_uri=${config.redirectUri}`
-    + `&client_id=${config.clientId}`
-    + `&scope=${scope}`
-    + `&state=${OAuth._stateParam(loginStyle, credentialToken)}`;
+    const loginUrl =
+      "https://appleid.apple.com/auth/authorize" +
+      "?response_type=code%20id_token" +
+      "&response_mode=form_post" +
+      `&redirect_uri=${config.redirectUri}` +
+      `&client_id=${config.clientId}` +
+      `&scope=${scope}` +
+      `&state=${OAuth._stateParam(loginStyle, credentialToken)}`;
 
-  OAuth.launchLogin({
-    loginService: 'apple',
-    loginStyle,
-    loginUrl,
-    credentialRequestCompleteCallback,
-    credentialToken,
-    popupOptions: {
-      height: 600,
+    OAuth.launchLogin({
+      loginService: "apple",
+      loginStyle,
+      loginUrl,
+      credentialRequestCompleteCallback,
+      credentialToken,
+      popupOptions: {
+        height: 600,
+      },
+    });
+  }
+
+  const scope = [];
+  const requestPermissions = (options && options.requestPermissions) || [];
+  if (requestPermissions.includes("name")) {
+    scope.push(0);
+  }
+  if (requestPermissions.includes("email")) {
+    scope.push(1);
+  }
+
+  window.cordova.plugins.SignInWithApple.signin(
+    { requestedScopes: scope },
+    function (succ) {
+      Accounts.callLoginMethod({
+        methodArguments: [
+          { ...succ, code: succ.authorizationCode, methodName: "apple" },
+        ],
+        userCallback: callback,
+      });
     },
-  });
+    function (err) {
+      console.error("err", err);
+      callback(err, null);
+    }
+  );
 };
 
 /**
@@ -60,9 +93,9 @@ Apple.requestCredential = function(options, credentialRequestCompleteCallback) {
  *
  * (Would like to have a better way to check this but it works for now)
  */
-Apple._isNativeSignInWindow = function() {
+Apple._isNativeSignInWindow = function () {
   const minVersionNative = 605;
-  const userAgent = ((navigator && navigator.userAgent) || '').toLowerCase();
+  const userAgent = ((navigator && navigator.userAgent) || "").toLowerCase();
   const match = userAgent.match(/applewebkit\/(\d+)/);
   if (match === null) {
     return false;

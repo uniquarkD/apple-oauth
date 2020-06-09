@@ -26,3 +26,7 @@ Npm.depends({
   'jsonwebtoken': '8.5.1',
   'jwks-rsa': '1.6.0',
 });
+
+Cordova.depends({
+  'cordova-plugin-sign-in-with-apple': '0.1.1'
+});
