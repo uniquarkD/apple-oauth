@@ -74,7 +74,7 @@ Apple.requestCredential = function (
     function (succ) {
       Accounts.callLoginMethod({
         methodArguments: [
-          { ...succ, code: succ.authorizationCode, methodName: "apple" },
+          { ...succ, code: succ.authorizationCode, methodName: "native-apple" },
         ],
         userCallback: credentialRequestCompleteCallback,
       });

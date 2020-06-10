@@ -1,13 +1,14 @@
 /* global OAuth */
-import { Promise } from 'meteor/promise';
-import Apple from './namespace.js';
+import { Promise } from "meteor/promise";
+import Apple from "./namespace.js";
+import { Accounts } from "meteor/accounts-base";
 
-const jwt = require('jsonwebtoken');
-const jwksClient = require('jwks-rsa');
+const jwt = require("jsonwebtoken");
+const jwksClient = require("jwks-rsa");
 
-Apple.whitelistedFields = ['email', 'name'];
+Apple.whitelistedFields = ["email", "name"];
 
-Apple.issuer = 'https://appleid.apple.com';
+Apple.issuer = "https://appleid.apple.com";
 Apple.jwksClient = jwksClient({
   jwksUri: `${Apple.issuer}/auth/keys`,
   cache: true,
@@ -19,42 +20,45 @@ Apple.jwksClient = jwksClient({
  *
  * @param {string} idToken Token to parse
  */
-const verifyAndParseIdentityToken = idToken => new Promise((resolve, reject) => {
-  const decoded = jwt.decode(idToken, { complete: true });
-  const { kid, alg } = decoded.header;
+const verifyAndParseIdentityToken = (idToken) =>
+  new Promise((resolve, reject) => {
+    const decoded = jwt.decode(idToken, { complete: true });
+    const { kid, alg } = decoded.header;
 
-  Apple.jwksClient.getSigningKey(kid, (err, key) => {
-    if (err) {
-      reject(err);
-    }
+    Apple.jwksClient.getSigningKey(kid, (err, key) => {
+      if (err) {
+        reject(err);
+      }
 
-    const signingKey = key.publicKey || key.rsaPublicKey;
-    const parsedIdToken = jwt.verify(idToken, signingKey, {
-      issuer: Apple.issuer,
-      audience: Apple.config.clientId,
-      algorithms: [alg],
+      const signingKey = key.publicKey || key.rsaPublicKey;
+      const parsedIdToken = jwt.verify(idToken, signingKey, {
+        issuer: Apple.issuer,
+        audience: Apple.config.clientId,
+        algorithms: [alg],
+      });
+
+      const issOk = parsedIdToken.iss === Apple.issuer;
+      const audOk = parsedIdToken.aud === Apple.config.clientId;
+      const expOk = parsedIdToken.exp > Math.floor(Date.now() / 1000);
+
+      if (issOk && audOk && expOk) {
+        resolve(parsedIdToken);
+      } else {
+        reject(
+          new Error("Apple Id token verification failed. Token mismatch.")
+        );
+      }
     });
-
-    const issOk = parsedIdToken.iss === Apple.issuer;
-    const audOk = parsedIdToken.aud === Apple.config.clientId;
-    const expOk = parsedIdToken.exp > Math.floor(Date.now() / 1000);
-
-    if (issOk && audOk && expOk) {
-      resolve(parsedIdToken);
-    } else {
-      reject(new Error('Apple Id token verification failed. Token mismatch.'));
-    }
   });
-});
 
 /**
  * Extracts data from apples tokens and formats for accounts
  *
  * @param {*} tokens tokens and data from apple
  */
-const getServiceDataFromTokens = (tokens) => {
+const getServiceDataFromTokens = (tokens, returnAsLoginMethod = false) => {
   const { accessToken, idToken, expiresIn } = tokens;
-  const scopes = 'name email';
+  const scopes = "name email";
 
   let parsedIdToken;
 
@@ -79,16 +83,22 @@ const getServiceDataFromTokens = (tokens) => {
     serviceData.refreshToken = tokens.refreshToken;
   }
 
-  const options = {};
+  const options = { profile: { email: serviceData.email } };
   if (tokens.user && tokens.user.name) {
     serviceData.name = tokens.user.name;
     options.profile = tokens.user.name;
   }
 
-  return {
-    serviceData,
-    options,
-  };
+  return returnAsLoginMethod
+    ? Accounts.updateOrCreateUserFromExternalService(
+        "apple",
+        serviceData,
+        options
+      )
+    : {
+        serviceData,
+        options,
+      };
 };
 
 /**
@@ -99,20 +109,20 @@ const getServiceDataFromTokens = (tokens) => {
  * @param {string} privateKey apple private key eg.-----BEGIN PRIVATE KEY-----\n....
  * @param {string} keyId apple key id eg. A1B2C3D4E5
  */
-const generateToken = function(teamId, clientId, privateKey, keyId) {
+const generateToken = function (teamId, clientId, privateKey, keyId) {
   const now = Math.floor(Date.now() / 1000);
   const expiry = now + 3600 * 24 * 180; // 180 days, max is 6 months
   const claims = {
     iss: teamId,
     iat: now,
     exp: expiry,
-    aud: 'https://appleid.apple.com',
+    aud: "https://appleid.apple.com",
     sub: clientId,
   };
 
   try {
     const token = jwt.sign(claims, privateKey, {
-      algorithm: 'ES256',
+      algorithm: "ES256",
       keyid: keyId,
     });
 
@@ -130,16 +140,18 @@ const generateToken = function(teamId, clientId, privateKey, keyId) {
  * @param {*} query auth/authorize redirect response from apple
  */
 const getTokens = (query) => {
-  const endpoint = 'https://appleid.apple.com/auth/token';
-  Apple.config = ServiceConfiguration.configurations.findOne({ service: 'apple' });
+  const endpoint = "https://appleid.apple.com/auth/token";
+  Apple.config = ServiceConfiguration.configurations.findOne({
+    service: "apple",
+  });
   if (!Apple.config) {
-    throw new ServiceConfiguration.ConfigError('Apple');
+    throw new ServiceConfiguration.ConfigError("Apple");
   }
   const token = generateToken(
     Apple.config.teamId,
     Apple.config.clientId,
     Apple.config.secret,
-    Apple.config.keyId,
+    Apple.config.keyId
   );
 
   let response;
@@ -149,27 +161,35 @@ const getTokens = (query) => {
         code: query.code,
         client_id: Apple.config.clientId,
         client_secret: token,
-        grant_type: 'authorization_code',
+        grant_type: "authorization_code",
         redirect_uri: Apple.config.redirectUri,
       },
     });
   } catch (err) {
     throw Object.assign(
-      new Error(`Failed to complete OAuth handshake with Apple. ${err.message}`),
+      new Error(
+        `Failed to complete OAuth handshake with Apple. ${err.message}`
+      ),
       {
         response: err.response,
-      },
+      }
     );
   }
   let user;
   if (query.user) {
-    user = JSON.parse(query.user);
+    try {
+      user = JSON.parse(query.user);
+    } catch (e) {
+      user = query.user;
+    }
   }
   if (response.data.error) {
     /**
      * The http response was a json object with an error attribute
      */
-    throw new Error(`Failed to complete OAuth handshake with Apple. ${response.data.error}`);
+    throw new Error(
+      `Failed to complete OAuth handshake with Apple. ${response.data.error}`
+    );
   } else {
     return {
       accessToken: response.data.access_token,
@@ -181,7 +201,14 @@ const getTokens = (query) => {
   }
 };
 
-const getServiceData = query => getServiceDataFromTokens(getTokens(query));
-OAuth.registerService('apple', 2, null, getServiceData);
+const getServiceData = (query) => getServiceDataFromTokens(getTokens(query));
+OAuth.registerService("apple", 2, null, getServiceData);
+Accounts.registerLoginHandler((query) => {
+  if (query.methodName != "native-apple") {
+    return;
+  }
+  return getServiceDataFromTokens(getTokens(query), true);
+});
 
-Apple.retrieveCredential = (credentialToken, credentialSecret) => OAuth.retrieveCredential(credentialToken, credentialSecret);
+Apple.retrieveCredential = (credentialToken, credentialSecret) =>
+  OAuth.retrieveCredential(credentialToken, credentialSecret);
