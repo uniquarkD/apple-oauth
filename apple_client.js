@@ -57,6 +57,7 @@ Apple.requestCredential = function (
         height: 600,
       },
     });
+    return;
   }
 
   const scope = [];
@@ -75,7 +76,7 @@ Apple.requestCredential = function (
         methodArguments: [
           { ...succ, code: succ.authorizationCode, methodName: "apple" },
         ],
-        userCallback: callback,
+        userCallback: credentialRequestCompleteCallback,
       });
     },
     function (err) {
