@@ -84,9 +84,14 @@ const getServiceDataFromTokens = (tokens, returnAsLoginMethod = false) => {
   }
 
   const options = { profile: { email: serviceData.email } };
+  
+  if(tokens.fullName){
+    serviceData.name = tokens.fullName;
+    options.profile.name = tokens.fullName;
+  }
   if (tokens.user && tokens.user.name) {
     serviceData.name = tokens.user.name;
-    options.profile = tokens.user.name;
+    options.profile.name = tokens.user.name;
   }
 
   return returnAsLoginMethod
@@ -197,6 +202,13 @@ const getTokens = (query) => {
       expiresIn: response.data.expires_in,
       idToken: response.data.id_token,
       user,
+      fullName: query.fullName
+        ? [
+            query.fullName.givenName,
+            query.fullName.middleName,
+            query.fullName.familyName,
+          ].join(" ")
+        : "",
     };
   }
 };
@@ -209,6 +221,3 @@ Accounts.registerLoginHandler((query) => {
   }
   return getServiceDataFromTokens(getTokens(query), true);
 });
-
-Apple.retrieveCredential = (credentialToken, credentialSecret) =>
-  OAuth.retrieveCredential(credentialToken, credentialSecret);
