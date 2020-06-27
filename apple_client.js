@@ -8,10 +8,12 @@ import Apple from "./namespace.js";
  * @param {Object}    options                             Optional
  * @param {Function}  credentialRequestCompleteCallback   Callback function to call on completion. Takes one argument, credentialToken on success, or Error on error.
  */
-Apple.requestCredential = function (
-  options,
-  credentialRequestCompleteCallback
-) {
+Apple.requestCredential = function (options, nativeCallback, oauthCallback) {
+  const nativeFlow = hasSupportForNativeLogin();
+
+  const credentialRequestCompleteCallback = nativeFlow
+    ? nativeCallback
+    : oauthCallback;
   // Support both (options, callback) and (callback).
   if (!credentialRequestCompleteCallback && typeof options === "function") {
     credentialRequestCompleteCallback = options;
@@ -28,7 +30,7 @@ Apple.requestCredential = function (
     return;
   }
 
-  if (!Meteor.isCordova) {
+  if (!nativeFlow) {
     const credentialToken = Random.secret();
     const loginStyle = Apple._isNativeSignInWindow()
       ? "redirect"
@@ -86,6 +88,13 @@ Apple.requestCredential = function (
   );
 };
 
+function hasSupportForNativeLogin() {
+  if (!Meteor.isCordova) return false;
+
+  const isiOS = device.platform === "iOS";
+
+  return isiOS && device.version.startsWith("13");
+}
 /**
  * Checks if browser uses native sign in window
  *
