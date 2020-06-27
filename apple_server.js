@@ -20,10 +20,11 @@ Apple.jwksClient = jwksClient({
  *
  * @param {string} idToken Token to parse
  */
-const verifyAndParseIdentityToken = (idToken) =>
+const verifyAndParseIdentityToken = (idToken, isNative = false) =>
   new Promise((resolve, reject) => {
     const decoded = jwt.decode(idToken, { complete: true });
     const { kid, alg } = decoded.header;
+    const clientId = isNative ? Apple.config.nativeClientId : Apple.config.clientId;
 
     Apple.jwksClient.getSigningKey(kid, (err, key) => {
       if (err) {
@@ -33,12 +34,12 @@ const verifyAndParseIdentityToken = (idToken) =>
       const signingKey = key.publicKey || key.rsaPublicKey;
       const parsedIdToken = jwt.verify(idToken, signingKey, {
         issuer: Apple.issuer,
-        audience: Apple.config.clientId,
+        audience: clientId,
         algorithms: [alg],
       });
 
       const issOk = parsedIdToken.iss === Apple.issuer;
-      const audOk = parsedIdToken.aud === Apple.config.clientId;
+      const audOk = parsedIdToken.aud === clientId;
       const expOk = parsedIdToken.exp > Math.floor(Date.now() / 1000);
 
       if (issOk && audOk && expOk) {
@@ -56,14 +57,14 @@ const verifyAndParseIdentityToken = (idToken) =>
  *
  * @param {*} tokens tokens and data from apple
  */
-const getServiceDataFromTokens = (tokens, returnAsLoginMethod = false) => {
+const getServiceDataFromTokens = (tokens, isNative = false) => {
   const { accessToken, idToken, expiresIn } = tokens;
   const scopes = "name email";
 
   let parsedIdToken;
 
   try {
-    parsedIdToken = Promise.await(verifyAndParseIdentityToken(idToken));
+    parsedIdToken = Promise.await(verifyAndParseIdentityToken(idToken, isNative));
   } catch (error) {
     throw new Error(`Apple Id token verification failed. ${error}`);
   }
@@ -94,7 +95,7 @@ const getServiceDataFromTokens = (tokens, returnAsLoginMethod = false) => {
     options.profile.name = tokens.user.name;
   }
 
-  return returnAsLoginMethod
+  return isNative
     ? Accounts.updateOrCreateUserFromExternalService(
         "apple",
         serviceData,
@@ -144,7 +145,7 @@ const generateToken = function (teamId, clientId, privateKey, keyId) {
  *
  * @param {*} query auth/authorize redirect response from apple
  */
-const getTokens = (query) => {
+const getTokens = (query, isNative = false) => {
   const endpoint = "https://appleid.apple.com/auth/token";
   Apple.config = ServiceConfiguration.configurations.findOne({
     service: "apple",
@@ -152,9 +153,10 @@ const getTokens = (query) => {
   if (!Apple.config) {
     throw new ServiceConfiguration.ConfigError("Apple");
   }
+  const clientId = isNative ? Apple.config.nativeClientId : Apple.config.clientId;
   const token = generateToken(
     Apple.config.teamId,
-    Apple.config.clientId,
+    clientId,
     Apple.config.secret,
     Apple.config.keyId
   );
@@ -164,7 +166,7 @@ const getTokens = (query) => {
     response = HTTP.post(endpoint, {
       params: {
         code: query.code,
-        client_id: Apple.config.clientId,
+        client_id: clientId,
         client_secret: token,
         grant_type: "authorization_code",
         redirect_uri: Apple.config.redirectUri,
@@ -213,11 +215,11 @@ const getTokens = (query) => {
   }
 };
 
-const getServiceData = (query) => getServiceDataFromTokens(getTokens(query));
+const getServiceData = (query) => getServiceDataFromTokens(getTokens(query, false), false);
 OAuth.registerService("apple", 2, null, getServiceData);
 Accounts.registerLoginHandler((query) => {
   if (query.methodName != "native-apple") {
     return;
   }
-  return getServiceDataFromTokens(getTokens(query), true);
+  return getServiceDataFromTokens(getTokens(query, true), true);
 });

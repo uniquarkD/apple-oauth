@@ -1,6 +1,6 @@
 Package.describe({
   name: 'quave:apple-oauth',
-  version: '1.3.1',
+  version: '1.3.2',
   summary: 'Sign in with Apple OAuth flow - fork from bigowl',
   git: 'https://github.com/quavedev/apple-oauth',
 });
