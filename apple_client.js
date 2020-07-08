@@ -1,5 +1,6 @@
 /* global OAuth */
 import Apple from "./namespace.js";
+import { Accounts } from "meteor/accounts-base";
 
 /**
  * Request Apple credentials for the user (boilerplate).
@@ -11,7 +12,7 @@ import Apple from "./namespace.js";
 Apple.requestCredential = function (options, nativeCallback, oauthCallback) {
   const nativeFlow = hasSupportForNativeLogin();
 
-  const credentialRequestCompleteCallback = nativeFlow
+  let credentialRequestCompleteCallback = nativeFlow
     ? nativeCallback
     : oauthCallback;
   // Support both (options, callback) and (callback).

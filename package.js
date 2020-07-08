@@ -1,6 +1,6 @@
 Package.describe({
   name: 'quave:apple-oauth',
-  version: '1.3.1',
+  version: '1.3.3',
   summary: 'Sign in with Apple OAuth flow - fork from bigowl',
   git: 'https://github.com/quavedev/apple-oauth',
 });
@@ -8,6 +8,7 @@ Package.describe({
 Package.onUse(function(api) {
   api.versionsFrom('1.8.1')
   api.use('ecmascript');
+  api.use('accounts-base', ['client', 'server']);
   api.use('oauth2', ['client', 'server']);
   api.use('oauth', ['client', 'server']);
   api.use('http', ['server']);
