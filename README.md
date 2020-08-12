@@ -1,6 +1,6 @@
-# bigowl:apple-oauth
+# quavedev:apple-oauth
 
-Sign in with Apple handler
+Sign in with Apple handler with native cordova plugin handler. forked from jramer/apple-oauth
 
 ## Config
 
@@ -13,15 +13,10 @@ The `redirectUri` needs to be https. [ngrok](https://ngrok.com)/[serveo](https:/
 ```
 "apple": {
   "teamId": "",
-  "clientId": "",
+  "clientId": "< your service id (for web) >",
+  "nativeClientId": "< your app id (mobile) >",
   "keyId": "",
   "secret": "-----BEGIN PRIVATE KEY-----\nABC\nABC\nABC\nABC\n-----END PRIVATE KEY-----",
   "redirectUri": "https://abc.def/_oauth/apple"
 },
 ```
-
-## Oauth post body fix
-
-I had to fix the oauth package to make it work with post body data.
-You need to add the package from my fork:
-[https://github.com/jramer/meteor/tree/feature/oauth-post-body/packages/oauth](https://github.com/jramer/meteor/tree/feature/oauth-post-body/packages/oauth)
