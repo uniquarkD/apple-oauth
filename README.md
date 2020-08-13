@@ -22,5 +22,5 @@ The `redirectUri` needs to be https. [ngrok](https://ngrok.com)/[serveo](https:/
 ```
 ## FAQ
 
-1. My native app doesn't login: Check if you built your app with the "Sign in with Apple" capability enabled, and if the provisioning profile also supports it.
-2. My web app doesn't login: Check if the keyId/secret/clientId is correct, also check if you have added the redirectUri to the list of authorized redirects, and that it ends with _oauth/apple
+1. My native app doesn't log in: Check if you built your app with the "Sign in with Apple" capability enabled, and if the provisioning profile also supports it.
+2. My web app doesn't log in: Check if the keyId/secret/clientId is correct, also check if you have added the redirectUri to the list of authorized redirects, and that it ends with _oauth/apple
