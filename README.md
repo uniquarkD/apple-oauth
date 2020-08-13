@@ -12,11 +12,15 @@ The `redirectUri` needs to be https. [ngrok](https://ngrok.com)/[serveo](https:/
 
 ```
 "apple": {
-  "teamId": "",
-  "clientId": "< your service id (for web) >",
   "nativeClientId": "< your app id (mobile) >",
+  "clientId": "< your service id (for web) >",
+  "teamId": "",
   "keyId": "",
   "secret": "-----BEGIN PRIVATE KEY-----\nABC\nABC\nABC\nABC\n-----END PRIVATE KEY-----",
   "redirectUri": "https://abc.def/_oauth/apple"
 },
 ```
+## FAQ
+
+1. My native app doesn't login: Check if you built your app with the "Sign in with Apple" capability enabled, and if the provisioning profile also supports it.
+2. My web app doesn't login: Check if the keyId/secret/clientId is correct, also check if you have added the redirectUri to the list of authorized redirects, and that it ends with _oauth/apple
