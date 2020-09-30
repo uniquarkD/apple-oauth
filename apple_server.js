@@ -85,7 +85,7 @@ const getServiceDataFromTokens = (tokens, isNative = false) => {
   }
 
   const options = { profile: { email: serviceData.email } };
-  
+
   if(tokens.fullName){
     serviceData.name = tokens.fullName;
     options.profile.name = tokens.fullName;
@@ -140,6 +140,27 @@ const generateToken = function (teamId, clientId, privateKey, keyId) {
   }
 };
 
+function getAbsoluteUrlOptions(query) {
+  const overrideRootUrlFromStateRedirectUrl = Meteor.settings?.packages?.['quave:apple-oauth']?.overrideRootUrlFromStateRedirectUrl;
+  if (!overrideRootUrlFromStateRedirectUrl) {
+    return undefined;
+  }
+  try {
+    const state = OAuth._stateFromQuery(query) || {};
+    console.log(`state`, state);
+
+    const redirectUrl = state.redirectUrl;
+    return {
+      rootUrl: redirectUrl,
+    }
+  } catch (e) {
+    console.error(
+      `Failed to complete OAuth handshake with Facebook because it was not able to obtain the redirect url from the state and you are using overrideRootUrlFromStateRedirectUrl.`, e
+    );
+    return undefined;
+  }
+}
+
 /**
  * Requests tokens and user from apple
  *
@@ -163,13 +184,18 @@ const getTokens = (query, isNative = false) => {
 
   let response;
   try {
+    const {rootUrl} = getAbsoluteUrlOptions(query) || {};
+
+    const redirectUri = rootUrl || Apple.config.redirectUri;
+    const redirectUriWithOauth = redirectUri.includes('/_oauth/apple') ? redirectUri : `${redirectUri}${redirectUri.endsWith('/') ? '' : '/'}_oauth/apple`;
+
     response = HTTP.post(endpoint, {
       params: {
         code: query.code,
         client_id: clientId,
         client_secret: token,
         grant_type: "authorization_code",
-        redirect_uri: Apple.config.redirectUri,
+        redirect_uri: redirectUriWithOauth,
       },
     });
   } catch (err) {

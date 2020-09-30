@@ -42,14 +42,17 @@ Apple.requestCredential = function(options, nativeCallback, oauthCallback) {
             options.requestPermissions.join("%20") :
             "name%20email";
 
-        const loginUrl =
-            "https://appleid.apple.com/auth/authorize" +
-            "?response_type=code%20id_token" +
-            "&response_mode=form_post" +
-            `&redirect_uri=${config.redirectUri}` +
+        const redirectUri = (options && options.absoluteUrlOptions && options.absoluteUrlOptions.rootUrl) || config.redirectUri;
+    const redirectUriWithOauth = redirectUri.includes('/_oauth/apple') ? redirectUri : `${redirectUri}${redirectUri.endsWith('/') ? '' : '/'}_oauth/apple`;
+
+    const loginUrl =
+      "https://appleid.apple.com/auth/authorize" +
+      "?response_type=code%20id_token" +
+      "&response_mode=form_post" +
+      `&redirect_uri=${redirectUriWithOauth}` +
             `&client_id=${config.clientId}` +
             `&scope=${scope}` +
-            `&state=${OAuth._stateParam(loginStyle, credentialToken)}`;
+            `&state=${OAuth._stateParam(loginStyle, credentialToken, options && options.redirectUrl)}`;
 
         OAuth.launchLogin({
             loginService: "apple",
