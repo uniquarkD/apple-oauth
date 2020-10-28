@@ -155,7 +155,7 @@ function getAbsoluteUrlOptions(query) {
     }
   } catch (e) {
     console.error(
-      `Failed to complete OAuth handshake with Facebook because it was not able to obtain the redirect url from the state and you are using overrideRootUrlFromStateRedirectUrl.`, e
+      `Failed to complete OAuth handshake with Apple because it was not able to obtain the redirect url from the state and you are using overrideRootUrlFromStateRedirectUrl.`, e
     );
     return undefined;
   }
