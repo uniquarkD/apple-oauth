@@ -24,6 +24,22 @@ Place the following in your settings.json:
 },
 ```
 
+Set in the database on Meteor.startup:
+
+```
+Meteor.startup(() => {
+    Accounts.loginServiceConfiguration.upsert(
+      {
+        service: 'apple',
+      },
+      {
+        $set: Meteor.settings.apple,
+      }
+    );
+})
+```
+
+
 And log in calling:
 ```
   Meteor.loginWithApple({
