@@ -23,6 +23,14 @@ Place the following in your settings.json:
   "redirectUri": "https://abc.def/_oauth/apple"
 },
 ```
+
+And log in calling:
+```
+  Meteor.loginWithApple({
+    requestPermissions: ['name', 'email'],
+  });
+```
+
 ## FAQ
 
 1. My native app doesn't log in: Check if you built your app with the "Sign in with Apple" capability enabled, and if the provisioning profile also supports it.
