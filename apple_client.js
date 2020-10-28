@@ -97,7 +97,15 @@ function hasSupportForNativeLogin() {
 
     const isiOS = device.platform === "iOS";
 
-    return isiOS && semver.gte(device.version, "13.0.0");
+    if(!isiOS) return false;
+
+    let version = device.version.split('.');
+
+    // Apple doesn't follow semver all the time, so fix it to look like major.minor.patch
+    while(version.length < 3){
+        version = version.concat([0]);
+    }
+    return isiOS && semver.gte(version.join('.'), "13.0.0");
 }
 /**
  * Checks if browser uses native sign in window
