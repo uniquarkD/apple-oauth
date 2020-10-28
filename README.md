@@ -10,6 +10,9 @@ Look here for a good example how to get these:
 The `secret` private key needs to have \n instead of newlines in the correct places.
 The `redirectUri` needs to be https. [ngrok](https://ngrok.com)/[serveo](https://serveo.net) works for development but you need to have the uri added in you apple dev account in the return urls.
 
+Place the following in your settings.json:
+
+
 ```
 "apple": {
   "nativeClientId": "< your app id (mobile) >",
