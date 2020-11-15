@@ -97,7 +97,7 @@ const getServiceDataFromTokens = (tokens, isNative = false) => {
 
   return isNative
     ? Accounts.updateOrCreateUserFromExternalService(
-        "apple",
+        "bapple",
         serviceData,
         options
       )
@@ -169,10 +169,10 @@ function getAbsoluteUrlOptions(query) {
 const getTokens = (query, isNative = false) => {
   const endpoint = "https://appleid.apple.com/auth/token";
   Apple.config = ServiceConfiguration.configurations.findOne({
-    service: "apple",
+    service: "bapple",
   });
   if (!Apple.config) {
-    throw new ServiceConfiguration.ConfigError("Apple");
+    throw new ServiceConfiguration.ConfigError("BApple");
   }
   const clientId = isNative ? Apple.config.nativeClientId : Apple.config.clientId;
   const token = generateToken(
@@ -242,7 +242,7 @@ const getTokens = (query, isNative = false) => {
 };
 
 const getServiceData = (query) => getServiceDataFromTokens(getTokens(query, false), false);
-OAuth.registerService("apple", 2, null, getServiceData);
+OAuth.registerService("bapple", 2, null, getServiceData);
 Accounts.registerLoginHandler((query) => {
   if (query.methodName != "native-apple") {
     return;
