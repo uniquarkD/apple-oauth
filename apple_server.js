@@ -141,7 +141,7 @@ const generateToken = function (teamId, clientId, privateKey, keyId) {
 };
 
 function getAbsoluteUrlOptions(query) {
-  const overrideRootUrlFromStateRedirectUrl = Meteor.settings?.packages?.['quave:apple-oauth']?.overrideRootUrlFromStateRedirectUrl;
+  const overrideRootUrlFromStateRedirectUrl = Meteor.settings?.packages?.['uniquarkd:apple-oauth']?.overrideRootUrlFromStateRedirectUrl;
   if (!overrideRootUrlFromStateRedirectUrl) {
     return undefined;
   }
